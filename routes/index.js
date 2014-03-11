@@ -71,8 +71,9 @@ exports.crawler = function (req, res) {
 
 exports.sendPost = function (req, res) {
     var requestLib = require('request'),
-        ep=require('eventproxy'),
-        dataList=require('../result/result1.js'),
+        eventproxy = require('eventproxy'),
+        epNameList=[],
+        dataList = require('../result/result1.js'),
         request = requestLib.defaults({jar: true}),
         options = {
             url: 'http://esalesdev.163.com:5356/app/article/add',
@@ -90,12 +91,53 @@ exports.sendPost = function (req, res) {
         };
 
     //.replace(/\n$/,'')
-    function psotCallback(error, response, body) {
+    function postCallback(error, response, body) {
         if (!error && response.statusCode == 200) {
-            console.log(body);
-            res.send(body);
+            //console.log(body);
+            ep.emit(name);
         }
     }
 
-    request(options, psotCallback);
+    function setOption(obj) {
+        var options = {
+            url: 'http://esalesdev.163.com:5356/app/article/add',
+            method: 'post',
+            headers: {
+                'Cookie': 'sid9543=000AAMHsjvOSu4j5hfuiJXlv7yq1xaTQ4l5U_4vypSF'
+            },
+            form: {
+                "topiclist_id": 12,
+                "keywords": obj.titel,
+                "title": obj.titel,
+                "resources": '{"default_album_id":1,"albums":[{"id":1,"images":[]}]} ',
+                "body": obj.answer.replace(/\n$/, '').replace(/小精灵提醒.*/g, '')
+            }
+        };
+    }
+
+    function epAction(name,options){
+        request(options,function(error,response,body){
+            if (!error && response.statusCode == 200) {
+                ep.emit(name);
+            }
+        })
+    }
+
+    dataList.forEach(function (item, index) {
+        if(index){
+            epNameList.push(item.titel);
+        }
+    })
+
+    var ep=eventproxy.create(epNameList,function(){
+        res.send(200);
+    })
+
+
+    dataList.forEach(function(item,index){
+        if(index){
+            epAction(item.titel,setOption(item.titel));
+        }
+    })
+
 }
